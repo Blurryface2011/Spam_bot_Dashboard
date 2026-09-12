@@ -1,23 +1,14 @@
-from flask import Flask, redirect, request, session, jsonify
+from flask import Flask, redirect, request, jsonify
 from flask_cors import CORS
 import requests
 import os
-import secrets
+from urllib.parse import urlencode
 
 app = Flask(__name__)
 
-app.secret_key = os.environ.get(
-    "FLASK_SECRET_KEY",
-    secrets.token_hex(32)
-)
-
-CORS(
-    app,
-    supports_credentials=True,
-    origins=[
-        "https://blurryface2011.github.io"
-    ]
-)
+CORS(app, origins=[
+    "https://blurryface2011.github.io"
+])
 
 CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
@@ -41,15 +32,16 @@ def health():
 @app.route("/login")
 def login():
 
-    discord_url = (
-        "https://discord.com/oauth2/authorize"
-        f"?client_id={CLIENT_ID}"
-        "&response_type=code"
-        "&scope=identify%20guilds"
-        f"&redirect_uri={REDIRECT_URI}"
-    )
+    params = {
+        "client_id": CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": REDIRECT_URI,
+        "scope": "identify guilds"
+    }
 
-    return redirect(discord_url)
+    url = "https://discord.com/oauth2/authorize?" + urlencode(params)
+
+    return redirect(url)
 
 
 @app.route("/callback")
@@ -58,107 +50,83 @@ def callback():
     code = request.args.get("code")
 
     if not code:
-        return "Erreur : aucun code Discord reçu.", 400
+        return "Code Discord manquant.", 400
 
-    data = {
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "grant_type": "authorization_code",
-        "code": code,
-        "redirect_uri": REDIRECT_URI
-    }
+    # On renvoie uniquement le code OAuth,
+    # jamais le token Discord.
+    return redirect(
+        GITHUB_PAGES + "?code=" + code
+    )
 
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
+
+@app.route("/api/exchange", methods=["POST"])
+def exchange():
+
+    data = request.get_json()
+
+    if not data or "code" not in data:
+        return jsonify({"error": "code_missing"}), 400
+
+    code = data["code"]
 
     token_response = requests.post(
         f"{DISCORD_API}/oauth2/token",
-        data=data,
-        headers=headers
+        data={
+            "client_id": CLIENT_ID,
+            "client_secret": CLIENT_SECRET,
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT_URI
+        },
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
     )
 
     if token_response.status_code != 200:
-        return "Erreur lors de la connexion à Discord.", 400
+        return jsonify({
+            "error": "discord_token_error"
+        }), 400
 
     token_data = token_response.json()
+    access_token = token_data["access_token"]
 
-    session["access_token"] = token_data["access_token"]
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
 
-    return redirect(GITHUB_PAGES)
-
-
-@app.route("/api/user")
-def get_user():
-
-    access_token = session.get("access_token")
-
-    if not access_token:
-        return jsonify({
-            "logged_in": False
-        })
-
-    response = requests.get(
+    user_response = requests.get(
         f"{DISCORD_API}/users/@me",
-        headers={
-            "Authorization": f"Bearer {access_token}"
-        }
+        headers=headers
     )
 
-    if response.status_code != 200:
-        return jsonify({
-            "logged_in": False
-        })
+    guilds_response = requests.get(
+        f"{DISCORD_API}/users/@me/guilds",
+        headers=headers
+    )
 
-    user = response.json()
+    if user_response.status_code != 200:
+        return jsonify({
+            "error": "user_error"
+        }), 400
+
+    user = user_response.json()
+    guilds = guilds_response.json()
 
     return jsonify({
-        "logged_in": True,
-        "id": user["id"],
-        "username": user["username"],
-        "global_name": user.get("global_name"),
-        "avatar": user.get("avatar")
+        "user": {
+            "id": user["id"],
+            "username": user["username"],
+            "global_name": user.get("global_name"),
+            "avatar": user.get("avatar")
+        },
+        "guilds": guilds
     })
-
-
-@app.route("/api/guilds")
-def get_guilds():
-
-    access_token = session.get("access_token")
-
-    if not access_token:
-        return jsonify({
-            "error": "not_logged_in"
-        }), 401
-
-    response = requests.get(
-        f"{DISCORD_API}/users/@me/guilds",
-        headers={
-            "Authorization": f"Bearer {access_token}"
-        }
-    )
-
-    if response.status_code != 200:
-        return jsonify({
-            "error": "discord_error"
-        }), response.status_code
-
-    return jsonify(response.json())
-
-
-@app.route("/logout")
-def logout():
-
-    session.clear()
-
-    return redirect(GITHUB_PAGES)
 
 
 if __name__ == "__main__":
 
-    port = int(
-        os.environ.get("PORT", 10000)
-    )
+    port = int(os.environ.get("PORT", 10000))
 
     app.run(
         host="0.0.0.0",

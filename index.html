@@ -40,8 +40,8 @@
             color: #d1d5db;
         }
 
-        .menu:hover,
-        .active {
+        .active,
+        .menu:hover {
             background: #374151;
             color: white;
         }
@@ -60,16 +60,6 @@
             padding: 13px 22px;
             border-radius: 8px;
             font-weight: bold;
-        }
-
-        .logout {
-            display: inline-block;
-            margin-top: 15px;
-            background: #374151;
-            color: white;
-            text-decoration: none;
-            padding: 10px 18px;
-            border-radius: 8px;
         }
 
         .cards {
@@ -91,22 +81,13 @@
         }
 
         .value {
-            font-size: 28px;
+            font-size: 25px;
             font-weight: bold;
             margin-top: 10px;
         }
 
         .online {
             color: #22c55e;
-        }
-
-        #user {
-            margin-top: 20px;
-            font-size: 18px;
-        }
-
-        #servers {
-            margin-top: 30px;
         }
 
         .server {
@@ -153,265 +134,214 @@
 
 <body>
 
-    <aside class="sidebar">
+<aside class="sidebar">
 
-        <div class="logo">
-            Discord Dashboard
-        </div>
+    <div class="logo">
+        Discord Dashboard
+    </div>
 
-        <div class="menu active">
-            🏠 Accueil
-        </div>
+    <div class="menu active">🏠 Accueil</div>
+    <div class="menu">🖥️ Serveurs</div>
+    <div class="menu">💬 Messages</div>
+    <div class="menu">⚙️ Configuration</div>
+    <div class="menu">👥 Utilisateurs</div>
 
-        <div class="menu">
-            🖥️ Serveurs
-        </div>
-
-        <div class="menu">
-            💬 Messages
-        </div>
-
-        <div class="menu">
-            ⚙️ Configuration
-        </div>
-
-        <div class="menu">
-            👥 Utilisateurs
-        </div>
-
-    </aside>
+</aside>
 
 
-    <main class="content">
+<main class="content">
 
-        <h1>Discord Bot Dashboard</h1>
+    <h1>Discord Bot Dashboard</h1>
 
-        <div id="loginArea">
+    <div id="loginArea">
 
-            <p>
-                Connecte ton compte Discord pour accéder au dashboard.
-            </p>
+        <p>Connecte ton compte Discord pour continuer.</p>
 
-            <a
-                class="login"
-                href="https://spam-bot-dashboard.onrender.com/login"
-            >
-                🔵 Se connecter avec Discord
-            </a>
+        <a
+            class="login"
+            href="https://spam-bot-dashboard.onrender.com/login"
+        >
+            🔵 Se connecter avec Discord
+        </a>
 
-        </div>
+    </div>
 
 
-        <div id="dashboard" class="hidden">
+    <div id="dashboard" class="hidden">
 
-            <div id="user">
-                Chargement...
+        <h2 id="username"></h2>
+
+        <section class="cards">
+
+            <div class="card">
+                <div class="title">État du bot</div>
+                <div class="value online">● En ligne</div>
             </div>
 
-            <a
-                class="logout"
-                href="https://spam-bot-dashboard.onrender.com/logout"
-            >
-                Déconnexion
-            </a>
-
-
-            <section class="cards">
-
-                <div class="card">
-
-                    <div class="title">
-                        État du bot
-                    </div>
-
-                    <div class="value online">
-                        ● En ligne
-                    </div>
-
-                </div>
-
-
-                <div class="card">
-
-                    <div class="title">
-                        Mes serveurs
-                    </div>
-
-                    <div
-                        class="value"
-                        id="serverCount"
-                    >
-                        —
-                    </div>
-
-                </div>
-
-
-                <div class="card">
-
-                    <div class="title">
-                        Compte Discord
-                    </div>
-
-                    <div
-                        class="value"
-                        id="accountName"
-                    >
-                        —
-                    </div>
-
-                </div>
-
-            </section>
-
-
-            <div id="servers">
-
-                <h2>Mes serveurs Discord</h2>
-
-                <div id="serverList">
-                    Chargement des serveurs...
-                </div>
-
+            <div class="card">
+                <div class="title">Mes serveurs</div>
+                <div class="value" id="serverCount">0</div>
             </div>
 
-        </div>
+            <div class="card">
+                <div class="title">Compte Discord</div>
+                <div class="value">Connecté</div>
+            </div>
 
-    </main>
+        </section>
 
 
-    <script>
+        <h2>Mes serveurs Discord</h2>
 
-        async function loadDashboard() {
+        <div id="serverList"></div>
 
-            try {
+    </div>
 
-                const userResponse = await fetch(
-                    "https://spam-bot-dashboard.onrender.com/api/user",
-                    {
-                        credentials: "include"
-                    }
+</main>
+
+
+<script>
+
+async function loginWithCode() {
+
+    const params = new URLSearchParams(
+        window.location.search
+    );
+
+    const code = params.get("code");
+
+    if (!code) {
+        return false;
+    }
+
+    const response = await fetch(
+        "https://spam-bot-dashboard.onrender.com/api/exchange",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                code: code
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+        console.error(data);
+        return false;
+    }
+
+    localStorage.setItem(
+        "discord_dashboard",
+        JSON.stringify(data)
+    );
+
+    window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname
+    );
+
+    return true;
+}
+
+
+function displayDashboard(data) {
+
+    document.getElementById(
+        "loginArea"
+    ).classList.add("hidden");
+
+    document.getElementById(
+        "dashboard"
+    ).classList.remove("hidden");
+
+    document.getElementById(
+        "username"
+    ).textContent =
+        "👤 " +
+        (data.user.global_name || data.user.username);
+
+
+    document.getElementById(
+        "serverCount"
+    ).textContent =
+        data.guilds.length;
+
+
+    const list =
+        document.getElementById("serverList");
+
+    list.innerHTML = "";
+
+
+    data.guilds.forEach(server => {
+
+        const div =
+            document.createElement("div");
+
+        div.className = "server";
+
+        div.textContent =
+            "🖥️ " + server.name;
+
+        list.appendChild(div);
+
+    });
+
+}
+
+
+async function start() {
+
+    try {
+
+        const loggedIn =
+            await loginWithCode();
+
+        if (loggedIn) {
+
+            const data =
+                JSON.parse(
+                    localStorage.getItem(
+                        "discord_dashboard"
+                    )
                 );
 
-                const user = await userResponse.json();
+            displayDashboard(data);
 
-
-                if (!user.logged_in) {
-
-                    document.getElementById(
-                        "loginArea"
-                    ).classList.remove("hidden");
-
-                    return;
-                }
-
-
-                document.getElementById(
-                    "loginArea"
-                ).classList.add("hidden");
-
-
-                document.getElementById(
-                    "dashboard"
-                ).classList.remove("hidden");
-
-
-                document.getElementById(
-                    "accountName"
-                ).textContent = user.username;
-
-
-                document.getElementById(
-                    "user"
-                ).textContent =
-                    "👤 Connecté en tant que " +
-                    (user.global_name || user.username);
-
-
-                loadServers();
-
-            }
-
-            catch (error) {
-
-                console.error(error);
-
-            }
-
+            return;
         }
 
 
-        async function loadServers() {
+        const saved =
+            localStorage.getItem(
+                "discord_dashboard"
+            );
 
-            try {
+        if (saved) {
 
-                const response = await fetch(
-                    "https://spam-bot-dashboard.onrender.com/api/guilds",
-                    {
-                        credentials: "include"
-                    }
-                );
-
-
-                const servers = await response.json();
-
-
-                if (!Array.isArray(servers)) {
-
-                    document.getElementById(
-                        "serverList"
-                    ).textContent =
-                        "Impossible de récupérer les serveurs.";
-
-                    return;
-                }
-
-
-                document.getElementById(
-                    "serverCount"
-                ).textContent = servers.length;
-
-
-                const list =
-                    document.getElementById("serverList");
-
-
-                list.innerHTML = "";
-
-
-                servers.forEach(server => {
-
-                    const div =
-                        document.createElement("div");
-
-                    div.className = "server";
-
-                    div.textContent =
-                        "🖥️ " + server.name;
-
-                    list.appendChild(div);
-
-                });
-
-            }
-
-            catch (error) {
-
-                console.error(error);
-
-                document.getElementById(
-                    "serverList"
-                ).textContent =
-                    "Erreur de connexion au backend.";
-
-            }
+            displayDashboard(
+                JSON.parse(saved)
+            );
 
         }
 
+    } catch (error) {
 
-        loadDashboard();
+        console.error(error);
 
-    </script>
+    }
+
+}
+
+
+start();
+
+</script>
 
 </body>
 </html>

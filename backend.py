@@ -74,7 +74,10 @@ def exchange():
 
     code = data["code"]
 
-    # OAuth Discord
+    # =========================
+    # ÉCHANGE OAUTH
+    # =========================
+
     token_response = requests.post(
         f"{DISCORD_API}/oauth2/token",
         data={
@@ -92,20 +95,26 @@ def exchange():
 
     if token_response.status_code != 200:
         return jsonify({
-            "error": "discord_token_error",
-            "details": token_response.text
+            "error": "discord_token_error"
         }), 400
 
     access_token = token_response.json()["access_token"]
 
-    oauth_headers = {
+    user_headers = {
         "Authorization": f"Bearer {access_token}"
     }
 
-    # Utilisateur
+    bot_headers = {
+        "Authorization": f"Bot {BOT_TOKEN}"
+    }
+
+    # =========================
+    # UTILISATEUR
+    # =========================
+
     user_response = requests.get(
         f"{DISCORD_API}/users/@me",
-        headers=oauth_headers
+        headers=user_headers
     )
 
     if user_response.status_code != 200:
@@ -115,64 +124,78 @@ def exchange():
 
     user = user_response.json()
 
-    # Serveurs de l'utilisateur
-    user_guilds_response = requests.get(
+    # =========================
+    # SERVEURS DE L'UTILISATEUR
+    # =========================
+
+    guilds_response = requests.get(
         f"{DISCORD_API}/users/@me/guilds",
-        headers=oauth_headers
+        headers=user_headers
     )
 
-    if user_guilds_response.status_code != 200:
+    if guilds_response.status_code != 200:
         return jsonify({
-            "error": "user_guilds_error"
+            "error": "guilds_error"
         }), 400
 
-    user_guilds = user_guilds_response.json()
+    user_guilds = guilds_response.json()
 
-    # Serveurs du BOT
-    bot_headers = {
-        "Authorization": f"Bot {BOT_TOKEN}"
-    }
+    # =========================
+    # VÉRIFICATION DU BOT
+    # =========================
 
-    bot_guilds_response = requests.get(
-        f"{DISCORD_API}/users/@me/guilds",
-        headers=bot_headers
-    )
+    bot_guilds = []
 
-    if bot_guilds_response.status_code != 200:
-        return jsonify({
-            "error": "bot_guilds_error",
-            "details": bot_guilds_response.text
-        }), 500
+    for guild in user_guilds:
 
-    bot_guilds = bot_guilds_response.json()
+        guild_id = guild["id"]
 
-    bot_guild_ids = {
-        guild["id"]
-        for guild in bot_guilds
-    }
+        check = requests.get(
+            f"{DISCORD_API}/guilds/{guild_id}",
+            headers=bot_headers
+        )
 
-    # Intersection utilisateur + bot
-    common_guilds = [
-        guild
-        for guild in user_guilds
-        if guild["id"] in bot_guild_ids
-    ]
+        # 200 = le bot est dans ce serveur
+        if check.status_code == 200:
+
+            bot_guilds.append({
+                "id": guild["id"],
+                "name": guild["name"],
+                "icon": guild.get("icon"),
+                "owner": guild.get("owner"),
+                "permissions": guild.get("permissions")
+            })
+
+    # =========================
+    # RÉSULTAT
+    # =========================
 
     return jsonify({
+
         "user": {
             "id": user["id"],
             "username": user["username"],
             "global_name": user.get("global_name"),
             "avatar": user.get("avatar")
         },
-        "guilds": common_guilds
+
+        "guilds": bot_guilds,
+
+        "debug": {
+            "user_guilds": len(user_guilds),
+            "bot_guilds_found": len(bot_guilds)
+        }
+
     })
 
 
 if __name__ == "__main__":
 
     port = int(
-        os.environ.get("PORT", 10000)
+        os.environ.get(
+            "PORT",
+            10000
+        )
     )
 
     app.run(

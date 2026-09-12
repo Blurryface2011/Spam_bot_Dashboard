@@ -10,10 +10,6 @@ CORS(app, origins=[
     "https://blurryface2011.github.io"
 ])
 
-# =========================
-# CONFIGURATION
-# =========================
-
 CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
 REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI")
@@ -27,27 +23,15 @@ GITHUB_PAGES = (
 )
 
 
-# =========================
-# ACCUEIL
-# =========================
-
 @app.route("/")
 def home():
     return "Backend Discord Dashboard OK"
 
 
-# =========================
-# HEALTH CHECK
-# =========================
-
 @app.route("/health")
 def health():
     return {"status": "ok"}
 
-
-# =========================
-# CONNEXION DISCORD
-# =========================
 
 @app.route("/login")
 def login():
@@ -59,17 +43,11 @@ def login():
         "scope": "identify guilds"
     }
 
-    url = (
+    return redirect(
         "https://discord.com/oauth2/authorize?"
         + urlencode(params)
     )
 
-    return redirect(url)
-
-
-# =========================
-# CALLBACK DISCORD
-# =========================
 
 @app.route("/callback")
 def callback():
@@ -84,10 +62,6 @@ def callback():
     )
 
 
-# =========================
-# ÉCHANGE DU CODE OAUTH
-# =========================
-
 @app.route("/api/exchange", methods=["POST"])
 def exchange():
 
@@ -100,15 +74,9 @@ def exchange():
 
     code = data["code"]
 
-
-    # -------------------------
-    # Récupération du token OAuth
-    # -------------------------
-
+    # OAuth Discord
     token_response = requests.post(
-
         f"{DISCORD_API}/oauth2/token",
-
         data={
             "client_id": CLIENT_ID,
             "client_secret": CLIENT_SECRET,
@@ -116,171 +84,98 @@ def exchange():
             "code": code,
             "redirect_uri": REDIRECT_URI
         },
-
         headers={
             "Content-Type":
                 "application/x-www-form-urlencoded"
         }
     )
 
-
     if token_response.status_code != 200:
-
         return jsonify({
-            "error": "discord_token_error"
+            "error": "discord_token_error",
+            "details": token_response.text
         }), 400
 
+    access_token = token_response.json()["access_token"]
 
-    token_data = token_response.json()
+    oauth_headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
 
-    access_token = token_data["access_token"]
-
-
-    # -------------------------
-    # Informations utilisateur
-    # -------------------------
-
+    # Utilisateur
     user_response = requests.get(
-
         f"{DISCORD_API}/users/@me",
-
-        headers={
-            "Authorization":
-                f"Bearer {access_token}"
-        }
+        headers=oauth_headers
     )
 
-
     if user_response.status_code != 200:
-
         return jsonify({
             "error": "user_error"
         }), 400
 
-
     user = user_response.json()
 
-
-    # -------------------------
     # Serveurs de l'utilisateur
-    # -------------------------
-
     user_guilds_response = requests.get(
-
         f"{DISCORD_API}/users/@me/guilds",
-
-        headers={
-            "Authorization":
-                f"Bearer {access_token}"
-        }
+        headers=oauth_headers
     )
 
-
     if user_guilds_response.status_code != 200:
-
         return jsonify({
-            "error": "guilds_error"
+            "error": "user_guilds_error"
         }), 400
-
 
     user_guilds = user_guilds_response.json()
 
-
-    # -------------------------
     # Serveurs du BOT
-    # -------------------------
+    bot_headers = {
+        "Authorization": f"Bot {BOT_TOKEN}"
+    }
 
     bot_guilds_response = requests.get(
-
         f"{DISCORD_API}/users/@me/guilds",
-
-        headers={
-            "Authorization":
-                f"Bot {BOT_TOKEN}"
-        }
+        headers=bot_headers
     )
 
-
     if bot_guilds_response.status_code != 200:
-
         return jsonify({
-            "error": "bot_guilds_error"
+            "error": "bot_guilds_error",
+            "details": bot_guilds_response.text
         }), 500
 
-
     bot_guilds = bot_guilds_response.json()
-
-
-    # -------------------------
-    # IDs des serveurs du BOT
-    # -------------------------
 
     bot_guild_ids = {
         guild["id"]
         for guild in bot_guilds
     }
 
-
-    # -------------------------
-    # Serveurs communs
-    # -------------------------
-
+    # Intersection utilisateur + bot
     common_guilds = [
-
         guild
-
         for guild in user_guilds
-
         if guild["id"] in bot_guild_ids
-
     ]
 
-
-    # -------------------------
-    # Réponse au dashboard
-    # -------------------------
-
     return jsonify({
-
         "user": {
-
-            "id":
-                user["id"],
-
-            "username":
-                user["username"],
-
-            "global_name":
-                user.get("global_name"),
-
-            "avatar":
-                user.get("avatar")
-
+            "id": user["id"],
+            "username": user["username"],
+            "global_name": user.get("global_name"),
+            "avatar": user.get("avatar")
         },
-
-        "guilds":
-            common_guilds
-
+        "guilds": common_guilds
     })
 
-
-# =========================
-# LANCEMENT
-# =========================
 
 if __name__ == "__main__":
 
     port = int(
-        os.environ.get(
-            "PORT",
-            10000
-        )
+        os.environ.get("PORT", 10000)
     )
 
     app.run(
-
         host="0.0.0.0",
-
         port=port
-
     )

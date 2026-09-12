@@ -13,6 +13,7 @@ CORS(app, origins=[
 CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
 CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
 REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI")
+BOT_TOKEN = os.environ.get("DISCORD_TOKEN")
 
 DISCORD_API = "https://discord.com/api"
 
@@ -52,8 +53,6 @@ def callback():
     if not code:
         return "Code Discord manquant.", 400
 
-    # On renvoie uniquement le code OAuth,
-    # jamais le token Discord.
     return redirect(
         GITHUB_PAGES + "?code=" + code
     )
@@ -89,6 +88,7 @@ def exchange():
         }), 400
 
     token_data = token_response.json()
+
     access_token = token_data["access_token"]
 
     headers = {
@@ -113,6 +113,25 @@ def exchange():
     user = user_response.json()
     guilds = guilds_response.json()
 
+    # Vérification des serveurs où LE BOT est présent
+    bot_guilds = []
+
+    bot_headers = {
+        "Authorization": f"Bot {BOT_TOKEN}"
+    }
+
+    for guild in guilds:
+
+        guild_id = guild["id"]
+
+        response = requests.get(
+            f"{DISCORD_API}/guilds/{guild_id}",
+            headers=bot_headers
+        )
+
+        if response.status_code == 200:
+            bot_guilds.append(guild)
+
     return jsonify({
         "user": {
             "id": user["id"],
@@ -120,7 +139,7 @@ def exchange():
             "global_name": user.get("global_name"),
             "avatar": user.get("avatar")
         },
-        "guilds": guilds
+        "guilds": bot_guilds
     })
 
 

@@ -6,12 +6,17 @@ import secrets
 
 app = Flask(__name__)
 
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", secrets.token_hex(32))
+app.secret_key = os.environ.get(
+    "FLASK_SECRET_KEY",
+    secrets.token_hex(32)
+)
 
 CORS(
     app,
     supports_credentials=True,
-    origins=["https://gactcompany.github.io"]
+    origins=[
+        "https://blurryface2011.github.io"
+    ]
 )
 
 CLIENT_ID = os.environ.get("DISCORD_CLIENT_ID")
@@ -19,6 +24,8 @@ CLIENT_SECRET = os.environ.get("DISCORD_CLIENT_SECRET")
 REDIRECT_URI = os.environ.get("DISCORD_REDIRECT_URI")
 
 DISCORD_API = "https://discord.com/api"
+
+GITHUB_PAGES = "https://blurryface2011.github.io/Spam_bot_Dashboard/"
 
 
 @app.route("/")
@@ -33,6 +40,7 @@ def health():
 
 @app.route("/login")
 def login():
+
     discord_url = (
         "https://discord.com/oauth2/authorize"
         f"?client_id={CLIENT_ID}"
@@ -77,9 +85,7 @@ def callback():
 
     session["access_token"] = token_data["access_token"]
 
-    return redirect(
-        "https://gactcompany.github.io/discord-bot-dashboard/"
-    )
+    return redirect(GITHUB_PAGES)
 
 
 @app.route("/api/user")
@@ -88,7 +94,9 @@ def get_user():
     access_token = session.get("access_token")
 
     if not access_token:
-        return jsonify({"logged_in": False})
+        return jsonify({
+            "logged_in": False
+        })
 
     response = requests.get(
         f"{DISCORD_API}/users/@me",
@@ -98,7 +106,9 @@ def get_user():
     )
 
     if response.status_code != 200:
-        return jsonify({"logged_in": False})
+        return jsonify({
+            "logged_in": False
+        })
 
     user = response.json()
 
@@ -141,14 +151,14 @@ def logout():
 
     session.clear()
 
-    return redirect(
-        "https://gactcompany.github.io/discord-bot-dashboard/"
-    )
+    return redirect(GITHUB_PAGES)
 
 
 if __name__ == "__main__":
 
-    port = int(os.environ.get("PORT", 10000))
+    port = int(
+        os.environ.get("PORT", 10000)
+    )
 
     app.run(
         host="0.0.0.0",

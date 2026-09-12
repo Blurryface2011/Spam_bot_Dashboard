@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Discord Bot Dashboard</title>
 
     <style>
@@ -38,6 +39,7 @@
             margin: 6px 0;
             border-radius: 8px;
             color: #d1d5db;
+            cursor: pointer;
         }
 
         .menu:hover,
@@ -49,6 +51,10 @@
         .content {
             margin-left: 230px;
             padding: 35px;
+        }
+
+        h1 {
+            margin-top: 0;
         }
 
         .cards {
@@ -90,12 +96,17 @@
             font-size: 15px;
         }
 
+        button:hover {
+            background: #4752c4;
+        }
+
         #result {
             margin-top: 15px;
             color: #9ca3af;
         }
 
         @media (max-width: 700px) {
+
             .sidebar {
                 width: 70px;
             }
@@ -114,6 +125,10 @@
                 font-size: 0;
             }
 
+            .menu::first-letter {
+                font-size: 20px;
+            }
+
             .content {
                 margin-left: 70px;
                 padding: 20px;
@@ -129,38 +144,85 @@
 <body>
 
     <aside class="sidebar">
-        <div class="logo">Discord Dashboard</div>
 
-        <div class="menu active">🏠 Accueil</div>
-        <div class="menu">🖥️ Serveurs</div>
-        <div class="menu">💬 Messages</div>
-        <div class="menu">⚙️ Configuration</div>
-        <div class="menu">👥 Utilisateurs</div>
+        <div class="logo">
+            Discord Dashboard
+        </div>
+
+        <div class="menu active">
+            🏠 Accueil
+        </div>
+
+        <div class="menu">
+            🖥️ Serveurs
+        </div>
+
+        <div class="menu">
+            💬 Messages
+        </div>
+
+        <div class="menu">
+            ⚙️ Configuration
+        </div>
+
+        <div class="menu">
+            👥 Utilisateurs
+        </div>
+
     </aside>
+
 
     <main class="content">
 
         <h1>Bienvenue 👋</h1>
-        <p>Voici le panneau de contrôle de ton bot Discord.</p>
+
+        <p>
+            Voici le panneau de contrôle de ton bot Discord.
+        </p>
+
 
         <section class="cards">
 
             <div class="card">
-                <div class="title">État du bot</div>
-                <div class="value online">● En ligne</div>
+
+                <div class="title">
+                    État du bot
+                </div>
+
+                <div class="value online">
+                    ● En ligne
+                </div>
+
             </div>
 
-            <div class="card">
-                <div class="title">Serveurs</div>
-                <div class="value">3</div>
-            </div>
 
             <div class="card">
-                <div class="title">Utilisateurs</div>
-                <div class="value">0</div>
+
+                <div class="title">
+                    Serveurs
+                </div>
+
+                <div class="value">
+                    3
+                </div>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="title">
+                    Utilisateurs
+                </div>
+
+                <div class="value">
+                    0
+                </div>
+
             </div>
 
         </section>
+
 
         <button onclick="testBackend()">
             Tester le backend
@@ -170,27 +232,43 @@
 
     </main>
 
+
     <script>
+
         async function testBackend() {
+
             const result = document.getElementById("result");
 
-            result.textContent = "Connexion...";
+            result.textContent = "Connexion au backend...";
 
             try {
+
                 const response = await fetch(
                     "https://spam-bot-dashboard.onrender.com/health"
                 );
+
+                if (!response.ok) {
+                    throw new Error("Erreur serveur");
+                }
 
                 const data = await response.json();
 
                 result.textContent =
                     "✅ Backend connecté : " + data.status;
 
-            } catch (error) {
+            }
+
+            catch (error) {
+
+                console.error(error);
+
                 result.textContent =
                     "❌ Impossible de contacter le backend.";
+
             }
+
         }
+
     </script>
 
 </body>

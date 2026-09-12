@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serveurs - Discord Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 230px;
+            height: 100vh;
+            background: #1f2937;
+            padding: 25px 15px;
+        }
+
+        .logo {
+            font-size: 21px;
+            font-weight: bold;
+            margin-bottom: 35px;
+        }
+
+        .menu {
+            padding: 13px;
+            margin: 6px 0;
+            border-radius: 8px;
+            color: #d1d5db;
+        }
+
+        .menu:hover,
+        .active {
+            background: #374151;
+            color: white;
+        }
+
+        .content {
+            margin-left: 230px;
+            padding: 35px;
+        }
+
+        .server {
+            background: #1f2937;
+            padding: 20px;
+            border-radius: 14px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .server-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .status {
+            color: #22c55e;
+        }
+
+        button {
+            background: #5865f2;
+            border: none;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">Discord Dashboard</div>
+
+        <div class="menu">🏠 Accueil</div>
+        <div class="menu active">🖥️ Serveurs</div>
+        <div class="menu">💬 Messages</div>
+        <div class="menu">⚙️ Configuration</div>
+        <div class="menu">👥 Utilisateurs</div>
+    </aside>
+
+    <main class="content">
+
+        <h1>Mes serveurs</h1>
+        <p>Gère les serveurs sur lesquels ton bot est installé.</p>
+
+        <div class="server">
+            <div>
+                <div class="server-name">Mon serveur Discord</div>
+                <div class="status">● Bot en ligne</div>
+            </div>
+
+            <button>Configurer</button>
+        </div>
+
+        <div class="server">
+            <div>
+                <div class="server-name">Serveur 2</div>
+                <div class="status">● Bot en ligne</div>
+            </div>
+
+            <button>Configurer</button>
+        </div>
+
+    </main>
+
+</body>
+</html>
